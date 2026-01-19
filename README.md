@@ -50,6 +50,22 @@ Install other requirements:
 pip install matplotlib==3.7 tikzplotlib jpeg4py opencv-python lmdb pandas scipy loguru
 ```
 
+#### Installation on NVIDIA Jetson
+
+For NVIDIA Jetson Orin AGX (JetPack 6.x), we provide a Docker solution to simplify installation and usage.
+
+1. Build the Docker image:
+   ```bash
+   ./scripts/build_jetson.sh
+   ```
+
+2. Run the container:
+   ```bash
+   ./scripts/run_jetson.sh
+   ```
+
+See [JETSON_README.md](JETSON_README.md) for more detailed instructions.
+
 #### SAM 2.1 Checkpoint Download
 
 ```

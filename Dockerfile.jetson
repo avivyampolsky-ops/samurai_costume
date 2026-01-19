@@ -1,0 +1,64 @@
+# ARG for base image, defaulting to JetPack 6.1 (L4T R36.4.0) which is compatible with JetPack 6.2
+# Note: JetPack 6.2 uses L4T 36.4.3 or 36.4.4.
+# dustynv/l4t-pytorch:r36.4.0 is likely the closest available pre-built container.
+# If you have issues, try checking if dustynv/l4t-pytorch:r36.4.4 exists.
+ARG BASE_IMAGE=dustynv/l4t-pytorch:r36.4.0
+FROM ${BASE_IMAGE}
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV SAM2_BUILD_CUDA=1
+ENV TORCH_CUDA_ARCH_LIST="8.7"
+# Add /usr/local/cuda/bin to PATH
+ENV PATH="/usr/local/cuda/bin:${PATH}"
+
+# Install system dependencies
+# vim/nano for editing config files inside container
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    libavutil-dev \
+    libavcodec-dev \
+    libavformat-dev \
+    libswscale-dev \
+    pkg-config \
+    build-essential \
+    libffi-dev \
+    git \
+    wget \
+    curl \
+    vim \
+    nano \
+    && rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip
+RUN pip3 install --upgrade pip setuptools
+
+# Set working directory
+WORKDIR /opt/samurai
+
+# Copy the entire repository
+COPY . /opt/samurai
+
+# Install SAMURAI dependencies
+# Note: opencv-python is difficult to install via pip on Jetson.
+# We try to install it here, but if the base image already has cv2, it might skip or reinstall headless.
+# dustynv/l4t-pytorch typically doesn't include opencv.
+# Installing opencv-python on aarch64 via pip can take a long time (building from source) or find wheels.
+# We include it here as per instructions, but users might prefer mounting system opencv if available.
+RUN pip3 install matplotlib==3.7 tikzplotlib jpeg4py opencv-python lmdb pandas scipy loguru
+
+# Install SAM 2 (SAMURAI version)
+# We need to install from the sam2 subdirectory
+WORKDIR /opt/samurai/sam2
+RUN pip3 install -e .
+
+# Download SAM 2.1 checkpoints
+# The script is in sam2/checkpoints
+WORKDIR /opt/samurai/sam2/checkpoints
+RUN chmod +x download_ckpts.sh && ./download_ckpts.sh
+
+# Set default working directory back to root of samurai for running scripts
+WORKDIR /opt/samurai
+
+# Set entrypoint to bash
+CMD ["/bin/bash"]
